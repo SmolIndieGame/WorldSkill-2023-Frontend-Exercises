@@ -20,11 +20,35 @@ body {
     flex-direction: column;
 }
 
-#result {
+h1 {
     color: white;
-    text-align: right;
     font-size: 4rem;
-    margin-right: 1rem;
+    overflow: hidden;
+    margin: 0;
+    user-select: all;
+}
+
+#op {
+    flex-shrink: 0;
+    user-select: none;
+}
+
+#bottom {
+    font-size: 2.5rem;
+    color: #666;
+    text-align: right;
+    padding: 0 1rem;
+    max-width: 343px;
+    box-sizing: border-box;
+}
+
+.display {
+    display: flex;
+    justify-content: space-between;
+    overflow: hidden;
+    max-width: 343px;
+    padding: 0 1rem;
+    box-sizing: border-box;
 }
 
 .keyboard {
@@ -45,6 +69,7 @@ button {
     transition: all 0.2s;
     filter: brightness(1);
     font-family: 'Roboto', sans-serif;
+    user-select: none;
 }
 
 .top-button {
