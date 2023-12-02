@@ -2,28 +2,27 @@ class Vector {
     constructor(i, j) {
         this.i = i;
         this.j = j;
+        Object.freeze(this);
     }
 
-    toCellId() {
-        return `cell ${this.i} ${this.j}`;
-    }
+    /** @param {Vector} vector */
+    static toCellId = (vector) => {
+        return `cell ${vector.i} ${vector.j}`;
+    };
 
-    equal(other) {
-        if (!other) return false;
-        return other.i === this.i && other.j === this.j;
-    }
+    /** @param {Vector} a @param {Vector} b */
+    static equal = (a, b) => {
+        if (!a || !b) return false;
+        return a.i === b.i && a.j === b.j;
+    };
 
-    add(other) {
+    /** @param {Vector} a @param {Vector} b */
+    static add = (a, b) => {
         return new Vector(
-            (rows + this.i + other.i) % rows,
-            (columns + this.j + other.j) % columns
+            (rows + a.i + b.i) % rows,
+            (columns + a.j + b.j) % columns
         );
-    }
-
-    static fromCellId(str) {
-        const strs = str.split(" ");
-        return new Vector(Number.parseInt(strs[1]), Number.parseInt(strs[2]));
-    }
+    };
 }
 
 const rows = 3;
@@ -136,7 +135,9 @@ function onKeyDown(evt) {
     s_velocity = getNewVelocity(s_velocity, evt.key);
 }
 
-function gameLoop() {
+async function gameLoop(state) {
+    await new Promise((r) => setTimeout(r, updateInterval));
+
     const newHeadPos = s_snake[s_snake.length - 1].add(s_velocity);
 
     if (isFood(newHeadPos)) {
@@ -162,8 +163,16 @@ function gameLoop() {
         gameOver();
         return;
     }
+
+    gameLoop(state);
 }
 
-init();
-window.addEventListener("keydown", onKeyDown);
-setInterval(gameLoop, updateInterval);
+async function inputLoop(state) {
+    const evt = await new Promise((r) =>
+        window.addEventListener("keydown", r, { once: true })
+    );
+    inputLoop({ velocity: getNewVelocity(state.velocity, evt.key) });
+}
+
+inputLoop(init());
+gameLoop(init());
