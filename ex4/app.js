@@ -23,9 +23,11 @@ class Vector {
     }
 }
 
-const rows = 10;
-const columns = 10;
-const updateInterval = 300;
+const rows = 3;
+const columns = 3;
+const minSnakeLength = 3;
+const foodCount = 0;
+const updateInterval = 1000 / 2;
 const keyToVelocity = {
     w: new Vector(-1, 0),
     s: new Vector(1, 0),
@@ -77,7 +79,7 @@ function getNewFoodPos() {
     let foodPos;
     do {
         foodPos = new Vector(Math.floor(Math.random() * rows), Math.floor(Math.random() * columns))
-    } while (isSnake(foodPos));
+    } while (isSnake(foodPos) || isFood(foodPos));
     return foodPos;
 }
 
@@ -111,10 +113,10 @@ function init() {
     s_velocity = new Vector(0, 1);
     snakeHead = new Vector(Math.floor(rows / 2), Math.floor(columns / 2));
     $setAsHead(snakeHead);
-    s_snake.push(snakeHead.add(new Vector(0, -2)));
-    s_snake.push(snakeHead.add(new Vector(0, -1)));
-    s_snake.push(snakeHead);
-    $setAsFood(getNewFoodPos());
+    for (let i = 0; i < minSnakeLength; i++)
+        s_snake.push(snakeHead);
+    for (let i = 0; i < foodCount && i < rows * columns - 1; i++)
+        $setAsFood(getNewFoodPos());
 }
 
 function onKeyDown(evt) {
@@ -123,22 +125,31 @@ function onKeyDown(evt) {
 
 function gameLoop() {
     const newHeadPos = s_snake[s_snake.length - 1].add(s_velocity);
+
+    if (isFood(newHeadPos)) {
+        $setAsHead(newHeadPos, s_snake[s_snake.length - 1]);
+        s_snake.push(newHeadPos);
+        if (s_snake.length === rows * columns) {
+            gameOver();
+            return;
+        }
+        if (s_snake.length < rows * columns - foodCount + 1)
+            $setAsFood(getNewFoodPos());
+        return;
+    }
+
+    s_snake.push(newHeadPos);
+
+    const tail = s_snake.shift();
+    if (!tail.equal(s_snake[0]))
+        $setAsEmpty(tail);
+
+    $setAsHead(newHeadPos, s_snake[s_snake.length - 2]);
+
     if (isSnake(newHeadPos)) {
         gameOver();
         return;
     }
-
-    if (isFood(newHeadPos)) {
-        $setAsFood(getNewFoodPos());
-        $setAsHead(newHeadPos, s_snake[s_snake.length - 1]);
-        s_snake.push(newHeadPos);
-        return;
-    }
-    $setAsHead(newHeadPos, s_snake[s_snake.length - 1]);
-    s_snake.push(newHeadPos);
-
-    const tail = s_snake.shift();
-    $setAsEmpty(tail);
 }
 
 
