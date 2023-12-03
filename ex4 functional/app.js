@@ -2,34 +2,26 @@ class Vector {
     constructor(i, j) {
         this.i = i;
         this.j = j;
-        Object.freeze(this);
     }
 
     /** @param {Vector} vector */
-    static toCellId = (vector) => {
-        return `cell ${vector.i} ${vector.j}`;
-    };
+    static toCellId = (vector) => `cell ${vector.i} ${vector.j}`;
 
     /** @param {Vector} a @param {Vector} b */
-    static equal = (a, b) => {
-        if (!a || !b) return false;
-        return a.i === b.i && a.j === b.j;
-    };
+    static equal = (a, b) => a && b && a.i === b.i && a.j === b.j;
 
     /** @param {Vector} a @param {Vector} b */
-    static add = (a, b) => {
-        return new Vector(
-            (rows + a.i + b.i) % rows,
-            (columns + a.j + b.j) % columns
-        );
-    };
+    static add = (a, b) =>
+        new Vector((rows + a.i + b.i) % rows, (columns + a.j + b.j) % columns);
 }
 
-const rows = 3;
-const columns = 3;
-const minSnakeLength = 3;
-const foodCount = 0;
-const updateInterval = 1000 / 2;
+/** @typedef {{snake: Vector[], foods: Vector[], velocity: Vector}} GameState */
+
+const rows = 10;
+const columns = 16;
+const minSnakeLength = 4;
+const foodCount = 3;
+const updateInterval = 1000 / 10;
 const keyToVelocity = {
     w: new Vector(-1, 0),
     s: new Vector(1, 0),
@@ -37,79 +29,160 @@ const keyToVelocity = {
     d: new Vector(0, 1),
 };
 
-const container = document.querySelector(".container");
+/** mutate the array for speed boost */
+function $swap(array, aIdx, bIdx) {
+    const tmp = array[aIdx];
+    array[aIdx] = array[bIdx];
+    array[bIdx] = tmp;
+    return array;
+}
 
-/** @param {Vector} cellPos */
-function isSnake(cellPos) {
-    const cell = document.getElementById(cellPos.toCellId());
-    return (
-        cell.classList.contains("snake-cell") ||
-        cell.classList.contains("head-cell")
+/**
+ * @template T
+ * @template U
+ * @param {() => T} computation
+ * @param {(input: T) => U} func
+ * @returns {U}
+ */
+const chain = (computation, func) => func(computation());
+
+/**
+ * @template T
+ * @param {T[]} array
+ * @param {(element: T) => boolean} predicate
+ * @param {Number} [len=array.length]
+ * @returns {T}
+ */
+const findRandom = (array, predicate, len = array.length) =>
+    len === 0
+        ? undefined
+        : chain(
+              () => Math.floor(Math.random() * len),
+              (idx) =>
+                  predicate(array[idx])
+                      ? array[idx]
+                      : findRandom(
+                            $swap(array, idx, len - 1),
+                            predicate,
+                            len - 1
+                        )
+          );
+
+/**
+ * @param {Vector[]} foods
+ * @param {Number} len
+ * @param {Vector[]} doNotAddTo
+ * @returns {Vector[]}
+ */
+const fillFood = (foods, doNotAddTo) =>
+    foods.length >= Math.min(foodCount, rows * columns - doNotAddTo.length)
+        ? foods
+        : fillFood(
+              [
+                  ...foods,
+                  findRandom(
+                      new Array(rows * columns)
+                          .fill(undefined)
+                          .map(
+                              (_, i) =>
+                                  new Vector(
+                                      Math.floor(i / columns),
+                                      i % columns
+                                  )
+                          ),
+                      (vec) =>
+                          !foods.some((e) => Vector.equal(e, vec)) &&
+                          !doNotAddTo.some((e) => Vector.equal(e, vec))
+                  ),
+              ],
+              doNotAddTo
+          );
+
+/**
+ * @param {Vector[]} foods
+ * @param {Vector[]} snake
+ * @param {Vector} headPos
+ * @returns {{eaten: boolean, foods: Vector[]}} */
+const foodHandling = (foods, snake, headPos) =>
+    chain(
+        () => foods.filter((e) => !Vector.equal(e, headPos)),
+        (foodsLeft) => ({
+            eaten: foodsLeft.length < foods.length,
+            foods: fillFood(foodsLeft, [...snake, headPos]),
+        })
+    );
+
+const gameOver = (message, input) => {
+    alert(message);
+    input.key = "d";
+    gameLoop(getInitState(), input);
+};
+
+/** @returns {GameState} */
+const getInitState = () =>
+    chain(
+        () => new Vector(Math.floor(rows / 2), Math.floor(columns / 2)),
+        (head) => ({
+            velocity: new Vector(0, 1),
+            snake: new Array(minSnakeLength).fill(head),
+            foods: fillFood([], [head]),
+        })
+    );
+
+/** @param {GameState} state */
+async function gameLoop(state, input) {
+    $display(state.snake, state.foods);
+    await new Promise((r) => setTimeout(r, updateInterval));
+
+    if (state.snake.length >= rows * columns) {
+        gameOver("You win!", input);
+        return;
+    }
+
+    const tmpVelocity = keyToVelocity[input.key];
+    const newVelocity =
+        tmpVelocity === undefined ||
+        (state.velocity.i === -tmpVelocity.i &&
+            state.velocity.j === -tmpVelocity.j)
+            ? state.velocity
+            : tmpVelocity;
+
+    const newHeadPos = Vector.add(
+        state.snake[state.snake.length - 1],
+        newVelocity
+    );
+    const { eaten, foods: newFoods } = foodHandling(
+        state.foods,
+        state.snake,
+        newHeadPos
+    );
+
+    const tmpSnake = state.snake.concat([newHeadPos]);
+    const newSnake = eaten ? tmpSnake : tmpSnake.slice(1);
+
+    if (
+        newSnake.some(
+            (e, i) =>
+                i < newSnake.length - 1 &&
+                Vector.equal(e, newSnake[newSnake.length - 1])
+        )
+    ) {
+        gameOver("You lose!", input);
+        return;
+    }
+
+    gameLoop(
+        {
+            snake: newSnake,
+            foods: newFoods,
+            velocity: newVelocity,
+        },
+        input
     );
 }
 
-/** @param {Vector} cellPos */
-function isFood(cellPos) {
-    const cell = document.getElementById(cellPos.toCellId());
-    return cell.classList.contains("food-cell");
-}
-
-/** @param {Vector} headPos @param {Vector | undefined} prevHeadPos */
-function $setAsHead(headPos, prevHeadPos) {
-    const cell = document.getElementById(headPos.toCellId());
-    cell.classList = "cell head-cell";
-    if (prevHeadPos === undefined) return;
-    const oldCell = document.getElementById(prevHeadPos.toCellId());
-    oldCell.classList = "cell snake-cell";
-}
-
-/** @param {Vector} cellPos */
-function $setAsEmpty(cellPos) {
-    const cell = document.getElementById(cellPos.toCellId());
-    cell.classList = "cell empty-cell";
-}
-
-/** @param {Vector} cellPos */
-function $setAsFood(cellPos) {
-    const cell = document.getElementById(cellPos.toCellId());
-    cell.classList = "cell food-cell";
-}
-
-// states
-/** @type {Vector[]} */
-let s_snake;
-let s_velocity;
-
-function getNewFoodPos() {
-    let foodPos;
-    do {
-        foodPos = new Vector(
-            Math.floor(Math.random() * rows),
-            Math.floor(Math.random() * columns)
-        );
-    } while (isSnake(foodPos) || isFood(foodPos));
-    return foodPos;
-}
-
-function getNewVelocity(oldVelocity, key) {
-    const pressed = key;
-    const newVelocity = keyToVelocity[pressed];
-    if (newVelocity === undefined) return oldVelocity;
-    if (
-        s_snake.length >= 2 &&
-        s_snake[s_snake.length - 2].equal(
-            s_snake[s_snake.length - 1].add(newVelocity)
-        )
-    )
-        return oldVelocity;
-    return newVelocity;
-}
-
-function gameOver() {
-    init();
-}
-
-function init() {
+function $initUI() {
+    const container = document.querySelector(".container");
     container.innerHTML = "";
     container.style.setProperty("--rows", rows);
     container.style.setProperty("--columns", columns);
@@ -117,62 +190,47 @@ function init() {
         for (let j = 0; j < columns; j++) {
             const cell = document.createElement("div");
             cell.classList = "cell empty-cell";
-            cell.id = new Vector(i, j).toCellId();
+            cell.id = Vector.toCellId(new Vector(i, j));
             container.appendChild(cell);
         }
     }
-
-    s_snake = [];
-    s_velocity = new Vector(0, 1);
-    snakeHead = new Vector(Math.floor(rows / 2), Math.floor(columns / 2));
-    $setAsHead(snakeHead);
-    for (let i = 0; i < minSnakeLength; i++) s_snake.push(snakeHead);
-    for (let i = 0; i < foodCount && i < rows * columns - 1; i++)
-        $setAsFood(getNewFoodPos());
 }
 
-function onKeyDown(evt) {
-    s_velocity = getNewVelocity(s_velocity, evt.key);
-}
-
-async function gameLoop(state) {
-    await new Promise((r) => setTimeout(r, updateInterval));
-
-    const newHeadPos = s_snake[s_snake.length - 1].add(s_velocity);
-
-    if (isFood(newHeadPos)) {
-        $setAsHead(newHeadPos, s_snake[s_snake.length - 1]);
-        s_snake.push(newHeadPos);
-        if (s_snake.length === rows * columns) {
-            gameOver();
-            return;
+/**
+ * @param {Vector[]} snake
+ * @param {Vector[]} foods
+ */
+function $display(snake, foods) {
+    for (let i = 0; i < rows; i++) {
+        for (let j = 0; j < columns; j++) {
+            const cell = document.getElementById(
+                Vector.toCellId(new Vector(i, j))
+            );
+            cell.classList = "cell empty-cell";
         }
-        if (s_snake.length < rows * columns - foodCount + 1)
-            $setAsFood(getNewFoodPos());
-        return;
     }
-
-    s_snake.push(newHeadPos);
-
-    const tail = s_snake.shift();
-    if (!tail.equal(s_snake[0])) $setAsEmpty(tail);
-
-    $setAsHead(newHeadPos, s_snake[s_snake.length - 2]);
-
-    if (isSnake(newHeadPos)) {
-        gameOver();
-        return;
-    }
-
-    gameLoop(state);
-}
-
-async function inputLoop(state) {
-    const evt = await new Promise((r) =>
-        window.addEventListener("keydown", r, { once: true })
+    snake.forEach(
+        (e, i) =>
+            (document.getElementById(Vector.toCellId(e)).classList =
+                i === snake.length - 1
+                    ? "cell head-cell"
+                    : i === 0
+                    ? "cell tail-cell"
+                    : "cell snake-cell")
     );
-    inputLoop({ velocity: getNewVelocity(state.velocity, evt.key) });
+    foods.forEach(
+        (e) =>
+            (document.getElementById(Vector.toCellId(e)).classList =
+                "cell food-cell")
+    );
 }
 
-inputLoop(init());
-gameLoop(init());
+function main() {
+    $initUI();
+    const inputState = { key: "" };
+    addEventListener("keydown", (evt) => (inputState.key = evt.key));
+    console.log(getInitState());
+    gameLoop(getInitState(), inputState);
+}
+
+main();

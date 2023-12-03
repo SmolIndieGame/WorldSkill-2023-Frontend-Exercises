@@ -1,5 +1,5 @@
 :root {
-    --cell-size: 20px;
+    --cell-size: 80px;
 }
 
 .container {
@@ -25,7 +25,11 @@
 }
 
 .snake-cell {
-    background-color: gray;
+    background-color: #777;
+}
+
+.tail-cell {
+    background-color: #999;
 }
 
 .food-cell {

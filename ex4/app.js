@@ -26,11 +26,11 @@ class Vector {
     }
 }
 
-const rows = 3;
-const columns = 3;
-const minSnakeLength = 3;
-const foodCount = 0;
-const updateInterval = 1000 / 2;
+const rows = 200;
+const columns = 380;
+const minSnakeLength = 9;
+const foodCount = 1000;
+const updateInterval = 1000 / 30;
 const keyToVelocity = {
     w: new Vector(-1, 0),
     s: new Vector(1, 0),
@@ -156,12 +156,12 @@ function gameLoop() {
     const tail = s_snake.shift();
     if (!tail.equal(s_snake[0])) $setAsEmpty(tail);
 
-    $setAsHead(newHeadPos, s_snake[s_snake.length - 2]);
-
     if (isSnake(newHeadPos)) {
         gameOver();
         return;
     }
+
+    $setAsHead(newHeadPos, s_snake[s_snake.length - 2]);
 }
 
 init();

@@ -1,5 +1,5 @@
 :root {
-    --cell-size: 20px;
+    --cell-size: 4px;
 }
 
 .container {
@@ -13,7 +13,7 @@
 .cell {
     width: var(--cell-size);
     height: var(--cell-size);
-    border: 1px black solid;
+    /* border: 1px black solid; */
 }
 
 .empty-cell {
