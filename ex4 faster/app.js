@@ -40,11 +40,9 @@ const keyToVelocity = {
 
 const container = document.querySelector(".container");
 
-let grid = [];
-
 /** @param {Vector} cellPos */
 function isSnake(cellPos) {
-    const cell = grid[cellPos.i][cellPos.j];
+    const cell = document.getElementById(cellPos.toCellId());
     return (
         cell.classList.contains("snake-cell") ||
         cell.classList.contains("head-cell")
@@ -53,13 +51,13 @@ function isSnake(cellPos) {
 
 /** @param {Vector} cellPos */
 function isFood(cellPos) {
-    const cell = grid[cellPos.i][cellPos.j];
+    const cell = document.getElementById(cellPos.toCellId());
     return cell.classList.contains("food-cell");
 }
 
 /** @param {Vector} headPos @param {Vector | undefined} prevHeadPos */
 function $setAsHead(headPos, prevHeadPos) {
-    const cell = grid[headPos.i][headPos.j];
+    const cell = document.getElementById(headPos.toCellId());
     cell.classList = "cell head-cell";
     if (prevHeadPos === undefined) return;
     const oldCell = document.getElementById(prevHeadPos.toCellId());
@@ -68,13 +66,13 @@ function $setAsHead(headPos, prevHeadPos) {
 
 /** @param {Vector} cellPos */
 function $setAsEmpty(cellPos) {
-    const cell = grid[cellPos.i][cellPos.j];
+    const cell = document.getElementById(cellPos.toCellId());
     cell.classList = "cell empty-cell";
 }
 
 /** @param {Vector} cellPos */
 function $setAsFood(cellPos) {
-    const cell = grid[cellPos.i][cellPos.j];
+    const cell = document.getElementById(cellPos.toCellId());
     cell.classList = "cell food-cell";
 }
 
@@ -113,18 +111,15 @@ function gameOver() {
 }
 
 function init() {
-    grid = [];
     container.innerHTML = "";
     container.style.setProperty("--rows", rows);
     container.style.setProperty("--columns", columns);
     for (let i = 0; i < rows; i++) {
-        grid[i] = [];
         for (let j = 0; j < columns; j++) {
             const cell = document.createElement("div");
             cell.classList = "cell empty-cell";
             cell.id = new Vector(i, j).toCellId();
             container.appendChild(cell);
-            grid[i][j] = cell;
         }
     }
 

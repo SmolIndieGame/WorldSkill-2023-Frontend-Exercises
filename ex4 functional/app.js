@@ -29,22 +29,24 @@ const keyToVelocity = {
     d: new Vector(0, 1),
 };
 
+/**
+ * @param {() => *} computation 
+ * @param  {...(input: *) => *} functions 
+ * @returns {*}
+ */
+const chain = (computation, ...functions) => {
+    return functions.length === 0
+        ? computation()
+        : functions[functions.length - 1](chain(computation, ...functions.slice(0, -1)));
+}
+
 /** mutate the array for speed boost */
-function $swap(array, aIdx, bIdx) {
+const $swap = (array, aIdx, bIdx) => {
     const tmp = array[aIdx];
     array[aIdx] = array[bIdx];
     array[bIdx] = tmp;
     return array;
 }
-
-/**
- * @template T
- * @template U
- * @param {() => T} computation
- * @param {(input: T) => U} func
- * @returns {U}
- */
-const chain = (computation, func) => func(computation());
 
 /**
  * @template T
@@ -57,16 +59,16 @@ const findRandom = (array, predicate, len = array.length) =>
     len === 0
         ? undefined
         : chain(
-              () => Math.floor(Math.random() * len),
-              (idx) =>
-                  predicate(array[idx])
-                      ? array[idx]
-                      : findRandom(
-                            $swap(array, idx, len - 1),
-                            predicate,
-                            len - 1
-                        )
-          );
+            () => Math.floor(Math.random() * len),
+            (idx) =>
+                predicate(array[idx])
+                    ? array[idx]
+                    : findRandom(
+                        $swap(array, idx, len - 1),
+                        predicate,
+                        len - 1
+                    )
+        );
 
 /**
  * @param {Vector[]} foods
@@ -78,25 +80,25 @@ const fillFood = (foods, doNotAddTo) =>
     foods.length >= Math.min(foodCount, rows * columns - doNotAddTo.length)
         ? foods
         : fillFood(
-              [
-                  ...foods,
-                  findRandom(
-                      new Array(rows * columns)
-                          .fill(undefined)
-                          .map(
-                              (_, i) =>
-                                  new Vector(
-                                      Math.floor(i / columns),
-                                      i % columns
-                                  )
-                          ),
-                      (vec) =>
-                          !foods.some((e) => Vector.equal(e, vec)) &&
-                          !doNotAddTo.some((e) => Vector.equal(e, vec))
-                  ),
-              ],
-              doNotAddTo
-          );
+            [
+                ...foods,
+                findRandom(
+                    new Array(rows * columns)
+                        .fill(undefined)
+                        .map(
+                            (_, i) =>
+                                new Vector(
+                                    Math.floor(i / columns),
+                                    i % columns
+                                )
+                        ),
+                    (vec) =>
+                        !foods.some((e) => Vector.equal(e, vec)) &&
+                        !doNotAddTo.some((e) => Vector.equal(e, vec))
+                ),
+            ],
+            doNotAddTo
+        );
 
 /**
  * @param {Vector[]} foods
@@ -130,7 +132,7 @@ const getInitState = () =>
     );
 
 /** @param {GameState} state */
-async function gameLoop(state, input) {
+const gameLoop = async (state, input) => {
     $display(state.snake, state.foods);
     await new Promise((r) => setTimeout(r, updateInterval));
 
@@ -142,8 +144,8 @@ async function gameLoop(state, input) {
     const tmpVelocity = keyToVelocity[input.key];
     const newVelocity =
         tmpVelocity === undefined ||
-        (state.velocity.i === -tmpVelocity.i &&
-            state.velocity.j === -tmpVelocity.j)
+            (state.velocity.i === -tmpVelocity.i &&
+                state.velocity.j === -tmpVelocity.j)
             ? state.velocity
             : tmpVelocity;
 
@@ -211,17 +213,17 @@ function $display(snake, foods) {
     }
     snake.forEach(
         (e, i) =>
-            (document.getElementById(Vector.toCellId(e)).classList =
-                i === snake.length - 1
-                    ? "cell head-cell"
-                    : i === 0
+        (document.getElementById(Vector.toCellId(e)).classList =
+            i === snake.length - 1
+                ? "cell head-cell"
+                : i === 0
                     ? "cell tail-cell"
                     : "cell snake-cell")
     );
     foods.forEach(
         (e) =>
-            (document.getElementById(Vector.toCellId(e)).classList =
-                "cell food-cell")
+        (document.getElementById(Vector.toCellId(e)).classList =
+            "cell food-cell")
     );
 }
 
@@ -229,7 +231,6 @@ function main() {
     $initUI();
     const inputState = { key: "" };
     addEventListener("keydown", (evt) => (inputState.key = evt.key));
-    console.log(getInitState());
     gameLoop(getInitState(), inputState);
 }
 
