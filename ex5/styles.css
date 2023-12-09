@@ -1,5 +1,5 @@
 :root {
-    --cell-size: 20px;
+    --cell-size: 24px;
 }
 
 .container {
@@ -8,19 +8,41 @@
     display: grid;
     grid-template-rows: repeat(var(--rows), var(--cell-size));
     grid-template-columns: repeat(var(--columns), var(--cell-size));
+    gap: 0px;
 }
 
 .cell {
-    --color: black;
     width: var(--cell-size);
     height: var(--cell-size);
-    border: 1px var(--color) solid;
-}
-
-.empty-cell {
-    background-color: lightgray;
+    box-sizing: border-box;
+    background-color: black;
+    position: relative;
 }
 
 .block-cell {
-    background-color: #333;
+    --color: #333;
+    background-color: var(--color);
+}
+
+.block-cell::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    box-shadow: inset -2px -2px black,
+                inset 2px 2px white;
+    opacity: 30%;
+}
+
+.hollow-cell::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    box-shadow: inset -2px -2px var(--color),
+                inset 2px 2px var(--color);
 }
