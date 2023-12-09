@@ -1,20 +1,21 @@
+// @ts-check
 "use strict";
 
 const _call =
     (obj) =>
-    (method) =>
-    (...args) => {
-        return method(obj, ...args);
-    };
+        (method) =>
+            (...args) => {
+                return method(obj, ...args);
+            };
 
 const _new =
     (constructor) =>
-    (...args) => {
-        const obj = {};
-        constructor(obj, ...args);
-        obj._ = _call(obj);
-        return obj;
-    };
+        (...args) => {
+            const obj = {};
+            constructor(obj, ...args);
+            obj._ = _call(obj);
+            return obj;
+        };
 
 const Car = (obj, name, speed, size) => {
     obj.name = name;
@@ -27,6 +28,15 @@ const changeSpeed = (obj, newSpeed) => {
     obj.speed = newSpeed;
     return oldSpeed;
 };
+
+const obj = {
+    hi() {
+        return {};
+    },
+    hi(i) {
+        return i;
+    }
+}
 
 const car = _new(Car)("hi", 567, 65);
 console.log(car);
@@ -59,3 +69,25 @@ async function mainLoop() {
 }
 
 mainLoop();
+
+/** @template E */
+class InfiniteHandlers {
+    /** @param {String} trigger @param {(evt: E) => void} handler */
+    addListener(trigger, handler) {
+        if (this[trigger + '_handler']) {
+            this[trigger + '_handler'].push(handler);
+            return;
+        }
+
+        this[trigger + '_handler'] = [handler];
+        /** @type {(evt: E) => void} */
+        this[trigger] = function (evt) {
+            this[trigger + '_handler'].forEach((/** @type {(evt: E) => void} */ f) => f(evt));
+        }
+    }
+}
+
+/** @type {InfiniteHandlers<String>} */
+const aaaa = new InfiniteHandlers();
+aaaa.addListener('click', (e) => console.log(e));
+aaaa.click("wowow");
