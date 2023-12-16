@@ -32,9 +32,6 @@ const changeSpeed = (obj, newSpeed) => {
 const obj = {
     hi() {
         return {};
-    },
-    hi(i) {
-        return i;
     }
 }
 
@@ -90,4 +87,20 @@ class InfiniteHandlers {
 /** @type {InfiniteHandlers<String>} */
 const aaaa = new InfiniteHandlers();
 aaaa.addListener('click', (e) => console.log(e));
-aaaa.click("wowow");
+aaaa['click']("wowow");
+
+const arr = {
+    [Symbol.iterator]() {
+        return {
+            next() {
+                return {
+                    value: 0
+                };
+            }
+        };
+    }
+}
+
+for (const item of arr) {
+
+}

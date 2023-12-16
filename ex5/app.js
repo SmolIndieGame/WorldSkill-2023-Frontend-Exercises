@@ -1,84 +1,8 @@
 // @ts-check
-
-class Vector {
-    /**
-     * @param {number} i
-     * @param {number} j
-     */
-    constructor(i, j) {
-        this.i = i;
-        this.j = j;
-    }
-
-    toCellId() {
-        return `cell ${this.i} ${this.j}`;
-    }
-
-    /**
-     * @param {{ i: any; j: any; }} other
-     */
-    equal(other) {
-        if (!other) return false;
-        return other.i === this.i && other.j === this.j;
-    }
-
-    /**
-     * @param {number} i
-     * @param {number} j
-     */
-    addNum(i, j) {
-        return new Vector(this.i + i, this.j + j);
-    }
-
-    /**
-     * @param {Vector} other
-     */
-    add(other) {
-        return new Vector(this.i + other.i, this.j + other.j);
-    }
-}
+import Vector from "./vector.js";
+import Shape from "./shape.js";
 
 /** @typedef {0 | 1 | 2 | 3} Rotation */
-
-class Shape {
-    /**
-     * @param {Number} height
-     * @param {Number} width
-     * @param {Vector[]} points
-     */
-    constructor(height, width, points) {
-        this.height = height;
-        this.width = width;
-        this.points = points;
-    }
-
-    /**
-     * @param {Rotation} rotation
-     * @returns {Vector[]}
-     */
-    transformPoints(rotation) {
-        switch (rotation) {
-            case 0:
-                return this.points.map((point) => new Vector(point.i, point.j));
-            case 1:
-                return this.points.map(
-                    (point) => new Vector(point.j, this.width - point.i - 1)
-                );
-            case 2:
-                return this.points.map(
-                    (point) =>
-                        new Vector(
-                            this.height - point.i - 1,
-                            this.width - point.j - 1
-                        )
-                );
-            case 3:
-                return this.points.map(
-                    (point) => new Vector(this.height - point.j, point.i)
-                );
-        }
-    }
-}
 
 const rows = 20;
 const columns = 10;
@@ -88,55 +12,13 @@ const updateIntervalUpdateTime = 30;
 const updateIntervalMinimum = 100;
 /** @type {Shape[]} */
 const shapes = [
-    // I
-    new Shape(4, 1, [
-        new Vector(0, 0),
-        new Vector(1, 0),
-        new Vector(2, 0),
-        new Vector(3, 0),
-    ]),
-    // O
-    new Shape(2, 2, [
-        new Vector(0, 0),
-        new Vector(0, 1),
-        new Vector(1, 0),
-        new Vector(1, 1),
-    ]),
-    // T
-    new Shape(2, 3, [
-        new Vector(0, 0),
-        new Vector(0, 1),
-        new Vector(0, 2),
-        new Vector(1, 1),
-    ]),
-    // J
-    new Shape(2, 3, [
-        new Vector(0, 0),
-        new Vector(1, 0),
-        new Vector(1, 1),
-        new Vector(1, 2),
-    ]),
-    // L
-    new Shape(3, 2, [
-        new Vector(0, 0),
-        new Vector(0, 1),
-        new Vector(1, 1),
-        new Vector(2, 1),
-    ]),
-    // S
-    new Shape(2, 3, [
-        new Vector(0, 1),
-        new Vector(0, 2),
-        new Vector(1, 0),
-        new Vector(1, 1),
-    ]),
-    // Z
-    new Shape(3, 2, [
-        new Vector(0, 1),
-        new Vector(1, 0),
-        new Vector(1, 1),
-        new Vector(2, 0),
-    ]),
+    Shape.from(0, 0, 1, 0, 2, 0, 3, 0), // I
+    Shape.from(0, 0, 0, 1, 1, 0, 1, 1), // O
+    Shape.from(0, 0, 0, 1, 0, 2, 1, 1), // T
+    Shape.from(0, 0, 1, 0, 1, 1, 1, 2), // J
+    Shape.from(0, 0, 0, 1, 1, 1, 2, 1), // L
+    Shape.from(0, 1, 0, 2, 1, 0, 1, 1), // S
+    Shape.from(0, 1, 1, 0, 1, 1, 2, 0), // Z
 ];
 
 const shapeColors = [
