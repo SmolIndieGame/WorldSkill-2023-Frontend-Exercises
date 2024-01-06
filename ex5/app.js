@@ -31,8 +31,8 @@ const shapeColors = [
     "magenta",
 ];
 
-/** @type {HTMLElement[][]} */
-let displayGrid;
+/** @type {{init: (rows: number, columns: number) => void, display: (grid: (String | undefined)[][]) => void}} */
+let displayScript;
 /** @type {(String | undefined)[][]} */
 let grid;
 /** @type {Vector} */
@@ -45,10 +45,12 @@ let currentColor;
 let currentShape;
 /** @type {Number} */
 let currentUpdateInterval;
+/** @type {boolean} */
+let updateIntervalChanged;
 /** @type {Number | undefined} */
-let intervalListener;
+let updateTimer;
 /** @type {Number | undefined} */
-let timeoutListener;
+let gameloopTimer;
 
 /**
  * @param {Vector} topLeft
@@ -105,57 +107,31 @@ function gameOver() {
 }
 
 function init() {
-    const container = document.querySelector(".container");
-    if (container === null || !(container instanceof HTMLElement)) return;
-    container.innerHTML = "";
-    container.style.setProperty("--rows", (rows + 2).toString());
-    container.style.setProperty("--columns", (columns + 2).toString());
-    displayGrid = [];
     grid = [];
-    for (let i = 0; i < rows + 2; i++) {
-        if (i > 0 && i <= rows) {
-            displayGrid[i - 1] = [];
-            grid[i - 1] = [];
-        }
-        for (let j = 0; j < columns + 2; j++) {
-            const cell = document.createElement("div");
-            if (i <= 0 || i > rows || j <= 0 || j > columns) {
-                cell.classList.value = "cell block-cell";
-                cell.style.setProperty("--color", "#777");
-                container.appendChild(cell);
-                continue;
-            }
-            cell.classList.value = "cell";
-            container.appendChild(cell);
-            displayGrid[i - 1][j - 1] = cell;
-            grid[i - 1][j - 1] = undefined;
+    for (let i = 0; i < rows; i++) {
+        grid[i] = [];
+        for (let j = 0; j < columns; j++) {
+            grid[i][j] = undefined;
         }
     }
+    displayScript.init(rows, columns);
 
-    clearInterval(intervalListener);
-    clearTimeout(timeoutListener);
+    clearInterval(updateTimer);
+    clearInterval(gameloopTimer);
     currentUpdateInterval = updateIntervalStart;
+    updateIntervalChanged = false;
 
     generateNewShape();
     display();
 
-    timeoutListener = setTimeout(gameLoop, currentUpdateInterval);
-    intervalListener = setInterval(
+    gameloopTimer = setInterval(gameLoop, currentUpdateInterval);
+    updateTimer = setInterval(
         updateInterval,
         updateIntervalUpdateTime * 1000
     );
 }
 
 function display() {
-    for (let i = 0; i < rows; i++) {
-        for (let j = 0; j < columns; j++) {
-            displayGrid[i][j].classList.value = "cell";
-            if (!grid[i][j]) continue;
-            displayGrid[i][j].classList.add("block-cell");
-            displayGrid[i][j].style.setProperty("--color", grid[i][j] ?? "");
-        }
-    }
-
     let groundTopLeft = currentTopLeft;
     while (
         isAvailable(groundTopLeft.addNum(1, 0), currentRotation, currentShape)
@@ -163,16 +139,22 @@ function display() {
         groundTopLeft = groundTopLeft.addNum(1, 0);
     for (const point of currentShape.transformPoints(currentRotation)) {
         const worldPoint = groundTopLeft.add(point);
-        const element = displayGrid[worldPoint.i][worldPoint.j];
-        element.classList.value = "cell hollow-cell";
-        element.style.setProperty("--color", currentColor);
+        grid[worldPoint.i][worldPoint.j] = "hollow " + currentColor;
     }
-
     for (const point of currentShape.transformPoints(currentRotation)) {
         const worldPoint = currentTopLeft.add(point);
-        const element = displayGrid[worldPoint.i][worldPoint.j];
-        element.classList.value = "cell block-cell";
-        element.style.setProperty("--color", currentColor);
+        grid[worldPoint.i][worldPoint.j] = currentColor;
+    }
+
+    displayScript.display(grid);
+
+    for (const point of currentShape.transformPoints(currentRotation)) {
+        const worldPoint = groundTopLeft.add(point);
+        grid[worldPoint.i][worldPoint.j] = undefined;
+    }
+    for (const point of currentShape.transformPoints(currentRotation)) {
+        const worldPoint = currentTopLeft.add(point);
+        grid[worldPoint.i][worldPoint.j] = undefined;
     }
 }
 
@@ -218,7 +200,15 @@ function updateInterval() {
         updateIntervalMinimum,
         currentUpdateInterval - updateIntervalDecrease
     );
-    console.log(currentUpdateInterval);
+    updateIntervalChanged = true;
+    console.log("Game has gone faster: " + currentUpdateInterval);
+}
+
+function adjustToNewInterval() {
+    if (!updateIntervalChanged) return;
+    clearInterval(gameloopTimer);
+    gameloopTimer = setInterval(gameLoop, currentUpdateInterval);
+    updateIntervalChanged = false;
 }
 
 function gameLoop() {
@@ -226,7 +216,7 @@ function gameLoop() {
     if (isAvailable(newTopLeft, currentRotation, currentShape)) {
         currentTopLeft = newTopLeft;
         display();
-        setTimeout(gameLoop, currentUpdateInterval);
+        adjustToNewInterval();
         return;
     }
     applyCurrentToGrid();
@@ -237,8 +227,26 @@ function gameLoop() {
         return;
     }
     display();
-    setTimeout(gameLoop, currentUpdateInterval);
+    adjustToNewInterval();
 }
 
-window.addEventListener("keydown", onKeyDown);
+/**
+ * @param {string} newEngine
+ */
+async function onRenderEngineChanged(newEngine) {
+    console.log(newEngine);
+    displayScript = await import("./" + newEngine + ".js");
+    init();
+}
+
+document.getElementById("render")?.addEventListener(
+    'change',
+    function () {
+        // @ts-ignore
+        onRenderEngineChanged(this.value ?? "html");
+    }
+)
+await onRenderEngineChanged("html");
+
 init();
+window.addEventListener("keydown", onKeyDown);
