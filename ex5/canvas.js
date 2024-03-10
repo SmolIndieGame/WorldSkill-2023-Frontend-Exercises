@@ -27,15 +27,6 @@ export function init(r, c) {
 }
 
 /**
- * @param {string} op
- * @param {number} i
- * @param {number} j
- */
-function opTo(op, i, j) {
-    return op + (j * cell_size).toString() + " " + (i * cell_size).toString() + " ";
-}
-
-/**
  * @param {number} i
  * @param {number} j
  * @param {string} color
@@ -59,7 +50,8 @@ function drawHollowCell(i, j, color) {
  * @param {(string | undefined)[][]} grid
  */
 export function display(grid) {
-    canvasCtx.clearRect(0, 0, columns * cell_size, rows * cell_size);
+    canvasCtx.fillStyle = "black";
+    canvasCtx.fillRect(0, 0, columns * cell_size, rows * cell_size);
     for (let i = 0; i < rows; i++) {
         for (let j = 0; j < columns; j++) {
             if (!grid[i][j])
